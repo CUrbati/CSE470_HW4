@@ -22,6 +22,8 @@ var obsidian = new Material (vec4(0.05375, 0.05, 0.06625, 1.0), vec4(0.18275, 0.
 var gold = new Material (vec4(0.24725, 0.1995, 0.0745, 1.0), vec4(0.75164, 0.60648, 0.22648, 1.0), vec4(0.628281, 0.555802, 0.366065, 1.0), 0.4);
 var ruby = new Material (vec4(0.1745, 0.01175, 0.01175, 1.0), vec4(0.61424, 0.04136, 0.04136, 1.0), vec4(0.727811, 0.626959, 0.626959, 1.0), 0.6);
 
+//Created to allow easier access to materials.
+var matericalList = [gold,obsidian, ruby];
 
 
 
@@ -36,9 +38,22 @@ var vertices = [
     vec4( 0.5, -0.5, -0.5, 1.0 )
 ];
 
+
+
+function createInstanceCube()
+{
+    quad( 1, 0, 3, 2 );
+    quad( 2, 3, 7, 6 );
+    quad( 3, 0, 4, 7 );
+    quad( 6, 5, 1, 2 );
+    quad( 4, 5, 6, 7 );
+    quad( 5, 4, 0, 1 );
+}
+
+
 var textCoordsArray=[];
 var normalsArray = [];
-
+var pointsArray = [];
 
 
 function quad(a, b, c, d) {
@@ -46,7 +61,7 @@ function quad(a, b, c, d) {
     var t1 = subtract(vertices[a], vertices[b]);
     var t2 = subtract(vertices[c], vertices[b]);
 
-    var normal = cross(t1,t2);
+    var normal = cross(t2,t1);
     normal = normalize(normal);
 
      pointsArray.push(vertices[a]);
@@ -72,27 +87,4 @@ function quad(a, b, c, d) {
      pointsArray.push(vertices[d]);
      normalsArray.push(normal);
      //texCoordsArray.push(texCoord[3]); 
-}
-
-window.onload = init;
-
-function init() {
-    canvas = document.getElementById( "gl-canvas" );
-    
-    gl = WebGLUtils.setupWebGL( canvas );
-    if ( !gl ) { alert( "WebGL isn't available" ); }
-
-    gl.viewport( 0, 0, canvas.width, canvas.height );
-    gl.clearColor( 1.0, 1.0, 1.0, 1.0 );
-    
-    gl.enable(gl.DEPTH_TEST);
-
-
-    //
-    //  Load shaders and initialize attribute buffers
-    //
-    var program = initShaders( gl, "vertex-shader", "fragment-shader" );
-    gl.useProgram( program );
-
-
 }

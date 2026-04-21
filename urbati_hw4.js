@@ -1,4 +1,0 @@
-var canvas;
-var gl;
-
-
