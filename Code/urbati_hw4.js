@@ -1,6 +1,7 @@
 var canvas;
 var gl;
 
+var t = 0;
 
 //-----------------------------------
 //Lighting parameters
@@ -8,6 +9,7 @@ var gl;
 var lightAmbient = vec4(1.0, 1.0, 1.0, 1.0);
 var lightDiffuse = vec4(1.0, 1.0, 1.0, 1.0);
 var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
+//------------------------------------
 
 
 var viewer = 
@@ -25,7 +27,7 @@ var viewer =
 // Create better params that suit your geometry
 var perspProj = 
  {
-	fov: 60,
+	fov: 40,
 	aspect: 1,
 	near: 0.1,
 	far:  100
@@ -46,7 +48,8 @@ var mouse =
 // define geometry
 var modelViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc;
-
+var instanceMatrix;
+var program;
 
 window.onload = init;
 
@@ -65,7 +68,7 @@ function init() {
     //
     //  Load shaders and initialize attribute buffers
     //
-    var program = initShaders( gl, "vertex-shader", "fragment-shader" );
+    program = initShaders( gl, "vertex-shader", "fragment-shader" );
     gl.useProgram( program );
 
     //Causes the quad function to get normals and create the geometry. 
@@ -91,24 +94,24 @@ function init() {
     gl.enableVertexAttribArray(vPosition);
     
     //Texture Buffer
-    //var tBuffer = gl.createBuffer();
-    //gl.bindBuffer( gl.ARRAY_BUFFER, tBuffer);
-    //gl.bufferData( gl.ARRAY_BUFFER, flatten(textCoordsArray), gl.STATIC_DRAW );
+    var tBuffer = gl.createBuffer();
+    gl.bindBuffer( gl.ARRAY_BUFFER, tBuffer);
+    gl.bufferData( gl.ARRAY_BUFFER, flatten(textCoordsArray), gl.STATIC_DRAW );
     //Texture Positions
-    //var vTexCoord = gl.getAttribLocation( program, "vTexCoord");
-    //gl.vertexAttribPointer(vTexCoord, 2, gl.FLOAT, false, 0, 0);
-    //gl.enableVertexAttribArray(vTexCoord);
+    var vTexCoord = gl.getAttribLocation( program, "vTexCoord");
+    gl.vertexAttribPointer(vTexCoord, 2, gl.FLOAT, false, 0, 0);
+    gl.enableVertexAttribArray(vTexCoord);
 
     //set up camera
-    viewer.eye = vec3(0, 0, 0 + 4);
+    viewer.eye = vec3(0, 0, 0 + 20);
     viewer.at = vec3(0, 0, 0);
     viewer.up = vec3(0, 1, 0);
 
     modelViewMatrix = lookAt(viewer.eye, viewer.at, viewer.up);
     projectionMatrix = perspective(perspProj.fov, perspProj.aspect, perspProj.near, perspProj.far);
 
-    var modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
-    var projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
+    modelViewMatrixLoc = gl.getUniformLocation(program, "modelViewMatrix");
+    projectionMatrixLoc = gl.getUniformLocation(program, "projectionMatrix");
     
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(modelViewMatrix));
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
@@ -134,14 +137,69 @@ function init() {
     gl.uniform1f(gl.getUniformLocation(program, 
         "shininess"),matericalList[0].shininess);
     
+    configureTexture();
+    
+    gl.activeTexture( gl.TEXTURE0 );
+    gl.bindTexture( gl.TEXTURE_2D, texture1 );
+    gl.uniform1i(gl.getUniformLocation( program, "Tex0"), 0);
 
+    gl.activeTexture( gl.TEXTURE1 );
+    gl.bindTexture( gl.TEXTURE_2D, texture2 );
+    gl.uniform1i(gl.getUniformLocation( program, "Tex1"), 1)
+    
+
+
+    for(var i = 0; i < numNodes; i++)
+    {
+        initNodes(i);
+    }
+
+    mouseControls();
     render();
 
 }
 
+
+var currentPosition = vec3(1, 1, 1);
+var currentAngle = 0;
+
 var render = function() {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+    t = t + 0.01;
+    if(t > 2*Math.PI)
+    {
+        t = 0;
+    }
+    //Will use this to influce the figure.
+    currentPosition = vec3(3*Math.cos(t), 1, 3*Math.sin(t));
+
+    let upVector = vec3(0, 1, 0);
+
+
+    let directionOfPath = cross(upVector, normalize(currentPosition));
+    currentAngle = Math.atan2(directionOfPath[2], directionOfPath[0]);
+    
+    //Because the world runs on radians but rotate needs degrees
+    currentAngle = currentAngle * 180 / Math.PI;
+
+    //Updaed modelview matrix based on changes to viewer from mouse input.
+    modelViewMatrix = lookAt(vec3(viewer.eye), viewer.at, viewer.up);
+	
+    instanceMatrix = mult(modelViewMatrix, scale4( 0.5, 0.5, 0.5));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
     gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
+    //Send updated modelview matrix to GPU.
+    gl.uniformMatrix4fv( gl.getUniformLocation(program,
+    "modelViewMatrix"), false, flatten(modelViewMatrix) ); 
+
+
+
+    traverse(bodyId);
+
+    
+
     requestAnimFrame(render);
 }
 

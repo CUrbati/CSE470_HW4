@@ -66,25 +66,215 @@ function quad(a, b, c, d) {
 
      pointsArray.push(vertices[a]);
      normalsArray.push(normal); 
-     //texCoordsArray.push(texCoord[0]);
+     textCoordsArray.push(texCoord[0]);
 
      pointsArray.push(vertices[b]);
      normalsArray.push(normal); 
-     //texCoordsArray.push(texCoord[1]); 
+     textCoordsArray.push(texCoord[1]); 
 
      pointsArray.push(vertices[c]);
      normalsArray.push(normal); 
-     //texCoordsArray.push(texCoord[2]); 
+     textCoordsArray.push(texCoord[2]); 
     
      pointsArray.push(vertices[a]);
      normalsArray.push(normal); 
-     //texCoordsArray.push(texCoord[0]); 
+     textCoordsArray.push(texCoord[0]); 
 
      pointsArray.push(vertices[c]);
      normalsArray.push(normal); 
-     //texCoordsArray.push(texCoord[2]); 
+     textCoordsArray.push(texCoord[2]); 
 
      pointsArray.push(vertices[d]);
      normalsArray.push(normal);
-     //texCoordsArray.push(texCoord[3]); 
+     textCoordsArray.push(texCoord[3]); 
 }
+
+//----------------------------Figure Code--------------------------------------------//
+//Directions based on looking forward at mesh.
+var headId = 0;
+var noseId = 1;
+var bodyId = 2;
+var frontLeftLegID = 3;
+var backLeftLegID = 4;
+var frontRightLegID = 5;
+var backRightLegID = 6;
+var tailBaseID = 7;
+var tailTipID = 8;
+var leftEarID = 9;
+var rightEarID = 10;
+
+
+var headHeight = 1.5;
+var headWidth = 1.5;
+var noseHeight = 0.25;
+var noseWidth = 0.25;
+var bodyHeight = 1.0;
+var bodyWidth = 1.0;
+
+var legWidth = 0.25;
+var legHeight = 1.5;
+
+var tailBaseHeight = 1.5;
+var tailBaseWidth = 0.25;
+var tailTipHeight = 0.5;
+var tailTipWidth = 0.25;
+
+
+
+
+var numNodes = 10;
+var numAngles = 11;
+var theta = [0, 0, 0, 0, 0, 0, -45, -45, 45, 0, 0];
+
+var stack = [];
+
+var figure = [];
+
+function scale4(a, b, c) {
+   var result = mat4();
+   result[0][0] = a;
+   result[1][1] = b;
+   result[2][2] = c;
+   return result;
+}
+
+
+function createNode(transform, render, sibling, child){
+    var node = {
+    transform: transform,
+    render: render,
+    sibling: sibling,
+    child: child,
+    }
+    return node;
+}
+
+for(var i = 0; i < numNodes; i ++){
+    figure[i] = createNode(null, null, null, null);
+}
+
+function initNodes(id){
+
+    var m = mat4();
+
+    switch(id){
+
+        case bodyId:
+            m = mat4();
+            figure[bodyId] = createNode(m, body, headId, tailBaseID);
+            break;
+
+        case headId:
+            m = mat4();
+            figure[headId] = createNode(m, head, frontLeftLegID, null);
+        
+        case frontLeftLegID:
+            m = mat4();
+            figure[frontLeftLegID] = createNode(m, leftfrontleg, frontRightLegID, null);
+        
+        case frontRightLegID:
+            m = mat4();
+            figure[frontRightLegID] = createNode(m, rightfrontleg, backLeftLegID, null);
+        case backLeftLegID:
+            m = mat4();
+            figure[backLeftLegID] = createNode(m, leftbackleg, null, backRightLegID);
+        case backRightLegID:
+            m = mat4();
+            figure[backRightLegID] = createNode(m, rightbackleg, null, null);
+        case tailBaseID:
+            m = mat4();
+            figure[tailBaseID] = createNode(m, basetail, null, tailTipID)
+        case tailTipID:
+            m = mat4();
+            figure[tailTipID] = createNode(m, tiptail, null, null)
+    }
+
+}
+
+function body() {
+
+    instanceMatrix = mult(modelViewMatrix, translate(0.0+currentPosition[0], legHeight, 0.0+currentPosition[2]) );
+    instanceMatrix = mult(instanceMatrix, rotate(currentAngle, 0, 1, 0));
+    instanceMatrix = mult(instanceMatrix, scale4( bodyWidth, bodyHeight, 2.5 * bodyWidth));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
+	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+}
+
+function head() {
+
+    instanceMatrix = mult(modelViewMatrix, translate(0.0, legHeight+bodyHeight, 1.25) );
+    instanceMatrix = mult(instanceMatrix, scale4( headWidth, headHeight, headWidth));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
+	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+}
+
+function leftfrontleg(){
+
+    instanceMatrix = mult(modelViewMatrix, translate(0.25, 0.5, 1.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight, legWidth));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
+	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
+}
+
+function rightfrontleg(){
+
+    instanceMatrix = mult(modelViewMatrix, translate(-0.25, 0.5, 1.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight, legWidth));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
+	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
+}
+
+function leftbackleg(){
+
+    instanceMatrix = mult(modelViewMatrix, translate(-0.25, 0.5, -1.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight, legWidth));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
+	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
+}
+
+function rightbackleg(){
+
+    instanceMatrix = mult(modelViewMatrix, translate(0.25, 0.5, -1.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight, legWidth));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
+	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
+}
+
+function basetail(){
+
+    instanceMatrix = mult(modelViewMatrix, translate(0, legHeight+bodyHeight-0.2, -0.5 - bodyWidth) );
+    instanceMatrix = mult(instanceMatrix, rotate(theta[tailBaseID], 1, 0, 0));
+    instanceMatrix = mult(instanceMatrix, scale4( tailBaseWidth, tailBaseHeight, tailBaseWidth));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
+	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
+}
+
+function tiptail(){
+
+    instanceMatrix = mult(modelViewMatrix, translate(0, tailTipHeight+legHeight+bodyHeight, -0.7 - bodyWidth) );
+    instanceMatrix = mult(instanceMatrix, rotate(theta[tailTipID], 1, 0, 0));
+    instanceMatrix = mult(instanceMatrix, scale4( tailTipWidth, tailTipHeight, tailTipWidth));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
+	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
+}
+
+
+
+
+function traverse(Id) {
+   
+   if(Id == null) return; 
+   stack.push(modelViewMatrix);
+   modelViewMatrix = mult(modelViewMatrix, figure[Id].transform);
+   figure[Id].render();
+   if(figure[Id].child != null) traverse(figure[Id].child); 
+    modelViewMatrix = stack.pop();
+   if(figure[Id].sibling != null) traverse(figure[Id].sibling); 
+}
+

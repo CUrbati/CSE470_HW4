@@ -16,6 +16,9 @@
         uniform mat4 projectionMatrix;
         uniform vec4 lightPosition;
 
+        attribute  vec2 vTexCoord;
+        varying vec2 fTexCoord;
+
         varying vec3 fNormal;
         varying vec3 fLight;
         varying vec3 fEye;
@@ -44,7 +47,7 @@
 
             fNormal = normalize( (modelViewMatrix*NN).xyz);
             
-
+            fTexCoord = vTexCoord;
             gl_Position = projectionMatrix * modelViewMatrix * vPosition;
             
             //ambient = vec4(0.0, 0.0, 0.0, 1.0);
@@ -63,11 +66,16 @@
         varying vec3 fNormal;
         varying vec3 fLight;
         varying vec3 fEye;
-
+        
+        uniform sampler2D Tex0;
+        uniform sampler2D Tex1;
+        varying  vec2 fTexCoord;
 
         void
         main()
         {
+ 
+
             // Normalize the normal, light, and eye vectors. Incase they are not already normalized.
             vec3 N = normalize( fNormal );
             vec3 L = normalize( fLight );
@@ -76,10 +84,10 @@
             vec3 R = 2.0 * dot(L, N) * N - L; // Reflection vector
 
             // Compute terms in the illumination equation
-            vec4 ambient = ambientProduct;
+            vec4 ambient = ambientProduct * texture2D(Tex1, fTexCoord) * texture2D(Tex0, fTexCoord);
 
             float Kd = max( dot(L, N), 0.0 );
-            vec4  diffuse = Kd*diffuseProduct;
+            vec4  diffuse = Kd*diffuseProduct * texture2D(Tex1, fTexCoord) * texture2D(Tex0, fTexCoord);
 
             vec3 V = E; //Renamed just to make it more clear for the equation. 
 
@@ -106,6 +114,9 @@
         <script type="text/javascript" src="../Common/MV.js"></script>
         <script type="text/javascript" src="urbat_geometry_hw4.js"></script>
         <script type="text/javascript" src="urbati_hw4.js"></script>
+        <script type="text/javascript" src="urbati_hw4_texture.js"></script>
+
+        
 
         <h1> CSE 470 HW#4: Meet My Avatar</h1>
         <div style="align-items: center;">
@@ -115,7 +126,9 @@
             <p>
             </p>
             <p><strong>Resources:</strong></p>
-            <p></p>
+            <p>https://stackoverflow.com/questions/37422885/how-to-rotate-an-object-along-a-circular-path</p>
+            <p>https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent</p>
+            <p>https://stackoverflow.com/questions/34842502/processing-how-do-i-make-an-object-move-in-a-circular-path</p>
         </div>
         <div style="align-items: center;">
             <canvas id="gl-canvas" width="512" height="512" style="border:2px solid #000000;">
@@ -124,6 +137,8 @@
         </div>
         <div class="inputs" style="display: flex; flex-direction: row; align-items: center;">
         </div>
+
+        <script type="text/javascript" src="mouseControl.js"></script>
     </body>
 
 </html>
