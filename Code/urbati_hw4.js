@@ -2,6 +2,12 @@ var canvas;
 var gl;
 
 var t = 0;
+var backforth = false;
+var s = 180;
+var z = theta[tailTipID];
+var tailWag = 0;
+var headshake = 0;
+var animate = true;
 
 //-----------------------------------
 //Lighting parameters
@@ -60,7 +66,7 @@ function init() {
     if ( !gl ) { alert( "WebGL isn't available" ); }
 
     gl.viewport( 0, 0, canvas.width, canvas.height );
-    gl.clearColor( 0.5, 0.5, 0.5, 0.0 );
+    gl.clearColor( 0.53, 0.81, 0.92, 1.0 );
     
     gl.enable(gl.DEPTH_TEST);
 
@@ -147,12 +153,9 @@ function init() {
     gl.bindTexture( gl.TEXTURE_2D, texture2 );
     gl.uniform1i(gl.getUniformLocation( program, "Tex1"), 1)
     
+    
 
 
-    for(var i = 0; i < numNodes; i++)
-    {
-        initNodes(i);
-    }
 
     mouseControls();
     render();
@@ -160,28 +163,31 @@ function init() {
 }
 
 
-var currentPosition = vec3(1, 1, 1);
+var currentPosition = vec3(0, 0, 0);
 var currentAngle = 0;
 
 var render = function() {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
 
-    t = t + 0.01;
-    if(t > 2*Math.PI)
+    if(animate)
     {
-        t = 0;
+
+        animation1();
+        
     }
-    //Will use this to influce the figure.
-    currentPosition = vec3(3*Math.cos(t), 1, 3*Math.sin(t));
+    else{
 
-    let upVector = vec3(0, 1, 0);
-
-
-    let directionOfPath = cross(upVector, normalize(currentPosition));
-    currentAngle = Math.atan2(directionOfPath[2], directionOfPath[0]);
+        currentPosition = vec3(0, 0, 0);
+        currentAngle = 0;
+        t = 0;
+        tailWag = 0;
+        headshake = 0;
+    }
     
-    //Because the world runs on radians but rotate needs degrees
-    currentAngle = currentAngle * 180 / Math.PI;
+
+
+    
+
 
     //Updaed modelview matrix based on changes to viewer from mouse input.
     modelViewMatrix = lookAt(vec3(viewer.eye), viewer.at, viewer.up);
@@ -194,7 +200,10 @@ var render = function() {
     gl.uniformMatrix4fv( gl.getUniformLocation(program,
     "modelViewMatrix"), false, flatten(modelViewMatrix) ); 
 
-
+    for(var i = 0; i < numNodes; i++)
+    {
+        initNodes(i);
+    }
 
     traverse(bodyId);
 

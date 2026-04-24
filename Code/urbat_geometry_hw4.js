@@ -1,7 +1,6 @@
 var numVertices  = 36;
 
 
-
 //------------------------------------
 //Materials parameters
 // material properties
@@ -124,8 +123,7 @@ var tailTipWidth = 0.25;
 
 var numNodes = 10;
 var numAngles = 11;
-var theta = [0, 0, 0, 0, 0, 0, -45, -45, 45, 0, 0];
-
+var theta = [0, 0, 0, 180, 180, 180, 180, 135, 45, 0, 0];
 var stack = [];
 
 var figure = [];
@@ -161,31 +159,58 @@ function initNodes(id){
 
         case bodyId:
             m = mat4();
-            figure[bodyId] = createNode(m, body, headId, tailBaseID);
+            m = translate(currentPosition[0], currentPosition[1], currentPosition[2]);
+            
+            m = mult(m,rotate(theta[bodyId], 0, 1, 0));
+            figure[bodyId] = createNode(m, body, null, headId);
             break;
 
         case headId:
             m = mat4();
+            m = translate(0.0, bodyHeight, 0.0);
+            m = mult(m, translate(0.0, 0.0, bodyWidth));
+            m = mult(m, rotate(theta[headId], 0, 0, 1));
             figure[headId] = createNode(m, head, frontLeftLegID, null);
         
         case frontLeftLegID:
             m = mat4();
+            m = translate(-(0.25*bodyWidth), 0.1*legHeight, 0.0);
+            m = mult(m, translate(0.0, 0.0, -bodyWidth));
+            m = mult(m, rotate(theta[frontLeftLegID], 1, 0, 0));
             figure[frontLeftLegID] = createNode(m, leftfrontleg, frontRightLegID, null);
         
         case frontRightLegID:
             m = mat4();
+            m = translate((0.25*bodyWidth), 0.1*legHeight, 0.0);
+            m = mult(m, translate(0.0, 0.0, -bodyWidth));
+            m = mult(m, rotate(theta[frontRightLegID], 1, 0, 0));
             figure[frontRightLegID] = createNode(m, rightfrontleg, backLeftLegID, null);
+
         case backLeftLegID:
             m = mat4();
-            figure[backLeftLegID] = createNode(m, leftbackleg, null, backRightLegID);
+            m = translate(-(0.25*bodyWidth), 0.1*legHeight, 0.0);
+            m = mult(m, translate(0.0, 0.0, bodyWidth));
+            m = mult(m, rotate(theta[backLeftLegID], 1, 0, 0));
+            figure[backLeftLegID] = createNode(m, leftbackleg, backRightLegID, null);
+            
         case backRightLegID:
             m = mat4();
-            figure[backRightLegID] = createNode(m, rightbackleg, null, null);
+            m = translate((0.25*bodyWidth), 0.1*legHeight, 0.0);
+            m = mult(m, translate(0.0, 0.0, bodyWidth));
+            m = mult(m, rotate(theta[backRightLegID], 1, 0, 0));
+            figure[backRightLegID] = createNode(m, rightbackleg, null, tailBaseID);
+
         case tailBaseID:
             m = mat4();
+            m = translate(-0.25*bodyWidth, 0.5*-(legHeight), 2.15*bodyWidth);
+            m = mult(m, rotate(135, 1, 0, 0));
+            m = mult(m, rotate(theta[tailBaseID], 0, 0, 1));
             figure[tailBaseID] = createNode(m, basetail, null, tailTipID)
         case tailTipID:
             m = mat4();
+            m = translate(0.0, tailBaseHeight, 0.0);
+            m = mult(m, rotate(45, 1, 0, 0));
+            m = mult(m, rotate(theta[tailTipID], 0, 0, 1));
             figure[tailTipID] = createNode(m, tiptail, null, null)
     }
 
@@ -193,8 +218,7 @@ function initNodes(id){
 
 function body() {
 
-    instanceMatrix = mult(modelViewMatrix, translate(0.0+currentPosition[0], legHeight, 0.0+currentPosition[2]) );
-    instanceMatrix = mult(instanceMatrix, rotate(currentAngle, 0, 1, 0));
+    instanceMatrix = mult(modelViewMatrix, translate(0.0, 0.5*bodyHeight, 0.0) );
     instanceMatrix = mult(instanceMatrix, scale4( bodyWidth, bodyHeight, 2.5 * bodyWidth));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
 	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
@@ -202,16 +226,17 @@ function body() {
 
 function head() {
 
-    instanceMatrix = mult(modelViewMatrix, translate(0.0, legHeight+bodyHeight, 1.25) );
-    instanceMatrix = mult(instanceMatrix, scale4( headWidth, headHeight, headWidth));
+    instanceMatrix = mult(modelViewMatrix, translate(0.0, 0.5*headHeight, 0.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( headWidth, headHeight,headWidth));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
 	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
 }
 
 function leftfrontleg(){
 
-    instanceMatrix = mult(modelViewMatrix, translate(0.25, 0.5, 1.0) );
-    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight, legWidth));
+    instanceMatrix = mult(modelViewMatrix, translate(0.0, 0.5*legHeight, 0.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight,legWidth));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
 	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
 
@@ -219,8 +244,8 @@ function leftfrontleg(){
 
 function rightfrontleg(){
 
-    instanceMatrix = mult(modelViewMatrix, translate(-0.25, 0.5, 1.0) );
-    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight, legWidth));
+    instanceMatrix = mult(modelViewMatrix, translate(0.0, 0.5*legHeight, 0.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight,legWidth));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
 	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
 
@@ -228,8 +253,8 @@ function rightfrontleg(){
 
 function leftbackleg(){
 
-    instanceMatrix = mult(modelViewMatrix, translate(-0.25, 0.5, -1.0) );
-    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight, legWidth));
+    instanceMatrix = mult(modelViewMatrix, translate(0.0, 0.5*legHeight, 0.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight,legWidth));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
 	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
 
@@ -237,8 +262,8 @@ function leftbackleg(){
 
 function rightbackleg(){
 
-    instanceMatrix = mult(modelViewMatrix, translate(0.25, 0.5, -1.0) );
-    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight, legWidth));
+    instanceMatrix = mult(modelViewMatrix, translate(0.0, 0.5*legHeight, 0.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( legWidth, legHeight,legWidth));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
 	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
 
@@ -246,9 +271,8 @@ function rightbackleg(){
 
 function basetail(){
 
-    instanceMatrix = mult(modelViewMatrix, translate(0, legHeight+bodyHeight-0.2, -0.5 - bodyWidth) );
-    instanceMatrix = mult(instanceMatrix, rotate(theta[tailBaseID], 1, 0, 0));
-    instanceMatrix = mult(instanceMatrix, scale4( tailBaseWidth, tailBaseHeight, tailBaseWidth));
+    instanceMatrix = mult(modelViewMatrix, translate(0.0, 0.5*tailBaseHeight, 0.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( tailBaseWidth, tailBaseHeight,tailBaseWidth));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
 	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
 
@@ -256,11 +280,12 @@ function basetail(){
 
 function tiptail(){
 
-    instanceMatrix = mult(modelViewMatrix, translate(0, tailTipHeight+legHeight+bodyHeight, -0.7 - bodyWidth) );
-    instanceMatrix = mult(instanceMatrix, rotate(theta[tailTipID], 1, 0, 0));
-    instanceMatrix = mult(instanceMatrix, scale4( tailTipWidth, tailTipHeight, tailTipWidth));
+    instanceMatrix = mult(modelViewMatrix, translate(0.0, 0.5*tailTipHeight, 0.0) );
+    instanceMatrix = mult(instanceMatrix, scale4( tailTipWidth, tailTipHeight,tailBaseWidth));
     gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
 	gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
+
 
 }
 
