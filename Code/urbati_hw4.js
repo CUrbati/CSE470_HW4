@@ -1,3 +1,5 @@
+//Chester Urbati
+
 var canvas;
 var gl;
 
@@ -20,12 +22,12 @@ var lightSpecular = vec4(1.0, 1.0, 1.0, 1.0);
 
 var viewer = 
 {
-	eye: vec3(0.0, 0.0, 3.0),
+	eye: vec3(0.0, 0.0, 20.0),
 	at:  vec3(0.0, 0.0, 0.0),  
 	up:  vec3(0.0, 1.0, 0.0),
 	
 	// for moving around object; set vals so at origin
-    radius: 4,
+    radius: 20,
     theta: 0,
     phi: 0
 };
@@ -50,12 +52,15 @@ var mouse =
     rightDown: false,
 };
 
+tempAngles = [];
 
 // define geometry
 var modelViewMatrix, projectionMatrix;
 var modelViewMatrixLoc, projectionMatrixLoc;
 var instanceMatrix;
 var program;
+var floorTextureLoc;
+var floor;
 
 window.onload = init;
 
@@ -108,11 +113,6 @@ function init() {
     gl.vertexAttribPointer(vTexCoord, 2, gl.FLOAT, false, 0, 0);
     gl.enableVertexAttribArray(vTexCoord);
 
-    //set up camera
-    viewer.eye = vec3(0, 0, 0 + 20);
-    viewer.at = vec3(0, 0, 0);
-    viewer.up = vec3(0, 1, 0);
-
     modelViewMatrix = lookAt(viewer.eye, viewer.at, viewer.up);
     projectionMatrix = perspective(perspProj.fov, perspProj.aspect, perspProj.near, perspProj.far);
 
@@ -123,41 +123,38 @@ function init() {
     gl.uniformMatrix4fv(projectionMatrixLoc, false, flatten(projectionMatrix));
 
     //Set light position    
-    lightPosition = vec4(0.0, 0.0, 0.0, 1.0);
+    lightPosition = vec4(viewer.eye[0], viewer.eye[1], viewer.eye[2], 1.0);
 
-    //Set the light products to show the materials.
-    ambientProduct = mult(lightAmbient, matericalList[0].ambient);
-    diffuseProduct = mult(lightDiffuse, matericalList[0].diffuse);
-    specularProduct = mult(lightSpecular, matericalList[0].specular);
+    floorTextureLoc = gl.getUniformLocation(program, "floor");
 
-    //Send material information to gpu.
-    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
-        flatten(ambientProduct));
-    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"),
-        flatten(diffuseProduct) );
-    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), 
-        flatten(specularProduct) );	
-    gl.uniform4fv(gl.getUniformLocation(program, "lightPosition"), 
-        flatten(lightPosition) );
-
-    gl.uniform1f(gl.getUniformLocation(program, 
-        "shininess"),matericalList[0].shininess);
-    
     configureTexture();
     
-    gl.activeTexture( gl.TEXTURE0 );
-    gl.bindTexture( gl.TEXTURE_2D, texture1 );
-    gl.uniform1i(gl.getUniformLocation( program, "Tex0"), 0);
-
-    gl.activeTexture( gl.TEXTURE1 );
-    gl.bindTexture( gl.TEXTURE_2D, texture2 );
-    gl.uniform1i(gl.getUniformLocation( program, "Tex1"), 1)
-    
-    
-
-
-
+    //configureTexture();
     mouseControls();
+
+
+    document.getElementById("materials").onchange = function(event) {
+        materialNum = parseInt(event.target.value);
+        console.log("selected material index: ", materialNum);
+        document.getElementById("shininess").value = matericalList[materialNum].shininess;
+
+        ambientProduct = mult(lightAmbient, matericalList[materialNum].ambient);
+        diffuseProduct = mult(lightDiffuse, matericalList[materialNum].diffuse);
+        specularProduct = mult(lightSpecular, matericalList[materialNum].specular);
+
+        gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
+            flatten(ambientProduct));
+        gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"),
+            flatten(diffuseProduct) );
+        gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), 
+            flatten(specularProduct) );	
+        gl.uniform4fv(gl.getUniformLocation(program, "lightPosition"), 
+            flatten(lightPosition) );
+
+    }
+
+
+
     render();
 
 }
@@ -168,33 +165,14 @@ var currentAngle = 0;
 
 var render = function() {
     gl.clear( gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
+    loadTexture1(materialNum);
     if(animate)
     {
-
+        
         animation1();
         
     }
-    else{
 
-        currentPosition = vec3(0, 0, 0);
-        currentAngle = 0;
-        t = 0;
-        tailWag = 0;
-        headshake = 0;
-    }
-    
-
-
-    
-
-
-    //Updaed modelview matrix based on changes to viewer from mouse input.
-    modelViewMatrix = lookAt(vec3(viewer.eye), viewer.at, viewer.up);
-	
-    instanceMatrix = mult(modelViewMatrix, scale4( 0.5, 0.5, 0.5));
-    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
-    gl.drawArrays( gl.TRIANGLES, 0, numVertices );
 
     //Send updated modelview matrix to GPU.
     gl.uniformMatrix4fv( gl.getUniformLocation(program,
@@ -208,7 +186,30 @@ var render = function() {
     traverse(bodyId);
 
     
+    //Updated modelview matrix based on changes to viewer from mouse input.
+    modelViewMatrix = lookAt(viewer.eye, viewer.at, viewer.up);
+
+    instanceMatrix = mult(modelViewMatrix, translate(0.0, -1.45, 0.0));
+    instanceMatrix = mult(instanceMatrix, scale4( 10, 0.25, 10));
+    gl.uniformMatrix4fv(modelViewMatrixLoc, false, flatten(instanceMatrix));
+    gl.drawArrays( gl.TRIANGLES, 0, numVertices );
+
 
     requestAnimFrame(render);
 }
+
+
+function animateFig()
+{
+    if(animate)
+    {
+        animate = false;
+    }
+    else
+    {
+        animate = true;
+    }
+}
+
+
 

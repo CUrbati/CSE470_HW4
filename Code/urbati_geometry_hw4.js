@@ -1,3 +1,4 @@
+//Chester Urbati
 var numVertices  = 36;
 
 
@@ -23,7 +24,7 @@ var ruby = new Material (vec4(0.1745, 0.01175, 0.01175, 1.0), vec4(0.61424, 0.04
 
 //Created to allow easier access to materials.
 var matericalList = [gold,obsidian, ruby];
-
+var materialNum = 0;
 
 
 var vertices = [
@@ -91,7 +92,6 @@ function quad(a, b, c, d) {
 //----------------------------Figure Code--------------------------------------------//
 //Directions based on looking forward at mesh.
 var headId = 0;
-var noseId = 1;
 var bodyId = 2;
 var frontLeftLegID = 3;
 var backLeftLegID = 4;
@@ -99,8 +99,6 @@ var frontRightLegID = 5;
 var backRightLegID = 6;
 var tailBaseID = 7;
 var tailTipID = 8;
-var leftEarID = 9;
-var rightEarID = 10;
 
 
 var headHeight = 1.5;
@@ -124,6 +122,7 @@ var tailTipWidth = 0.25;
 var numNodes = 10;
 var numAngles = 11;
 var theta = [0, 0, 0, 180, 180, 180, 180, 135, 45, 0, 0];
+tempAngles = theta;
 var stack = [];
 
 var figure = [];

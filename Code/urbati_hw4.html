@@ -1,5 +1,4 @@
 <!---Chester Urbati-->
-<!--Date: 04/09/2026-->
 <!DOCTYPE html>
 <html style="background-color: #1e1e1e; color: #ffffff; font-family: Arial, sans-serif;">
     <head>
@@ -9,102 +8,97 @@
         <!-- Vertex Shader -->
         <script id="vertex-shader" type="x-shader/x-vertex">
 
-        attribute  vec4 vPosition;
-        attribute  vec3 vNormal;
+            attribute  vec4 vPosition;
+            attribute  vec3 vNormal;
 
-        uniform mat4 modelViewMatrix;
-        uniform mat4 projectionMatrix;
-        uniform vec4 lightPosition;
+            varying vec4 fColor;
 
-        attribute  vec2 vTexCoord;
-        varying vec2 fTexCoord;
+            uniform vec4 ambientProduct, diffuseProduct, specularProduct;
 
-        varying vec3 fNormal;
-        varying vec3 fLight;
-        varying vec3 fEye;
-        
+            uniform mat4 modelViewMatrix;
+            uniform mat4 projectionMatrix;
+            uniform vec4 lightPosition;
+            uniform float shininess; 
 
-        void main()
-        {
+            attribute vec2 vTexCoord;
+            varying vec2 fTexCoord;
 
-            //compute lighting in eye coordinates
-            vec3 pos = (modelViewMatrix * vPosition).xyz;
-            
-            // light defined in eye coords, so no transformation
-            vec3 light = lightPosition.xyz;
 
-            
-            // light vector
-            fLight = normalize( light - pos );
+            void main()
+            {
 
-            // eye is at origin
-            vec3 eyePoint = vec3(0.0, 0.0, 0.0);
-            
-            // eye vector
-            fEye = normalize( eyePoint - pos );
-            
-            vec4 NN = vec4(vNormal,0.0);
+                // create 4d vectors for matrix multiplication
+                vec4 pos4D = vPosition;
+                vec4 nor4D = vec4(vNormal, 0.0);
+                
+                //compute lighting in eye coordinates
+                vec3 pos = (modelViewMatrix * pos4D).xyz;
+                
+                // input light has been defined in eye coords in js
+                vec3 light = lightPosition.xyz;
+                vec3 L = normalize( light - pos );
 
-            fNormal = normalize( (modelViewMatrix*NN).xyz);
-            
-            fTexCoord = vTexCoord;
-            gl_Position = projectionMatrix * modelViewMatrix * vPosition;
-            
-            //ambient = vec4(0.0, 0.0, 0.0, 1.0);
-        }
+                // eye coordinates assumes eye at origin
+                vec3 eyePoint = vec3(0.0, 0.0, 0.0);
+                vec3 E = normalize( eyePoint - pos );
+
+                // halfway vector
+                vec3 H = normalize( L + E );
+                
+                // Transform vertex normal into eye coordinates
+                vec3 N = normalize( (modelViewMatrix*nor4D).xyz);
+
+                // Compute terms in the illumination equation
+                vec4 ambient = ambientProduct;
+                
+                float Kd = max( dot(L, N), 0.0 );
+                vec4  diffuse = Kd*diffuseProduct;
+                
+                // play: this is how you might do debugging; 
+                //setting colors on condition
+                //if(dot(L, N) < 0.0) diffuse = vec4(1.0, 0.0, 0.0, 1.0);
+
+                float Ks = pow( max(dot(N, H), 0.0), shininess );
+                vec4  specular = Ks * specularProduct;
+                
+                if( dot(L, N) < 0.0 ) {
+                specular = vec4(0.0, 0.0, 0.0, 1.0);
+                } 
+                
+                // play  
+                //diffuse = vec4(0.0, 0.0, 0.0, 1.0);
+                //ambient = vec4(0.0, 0.0, 0.0, 1.0);
+                //specular = vec4(0.0, 0.0, 0.0, 1.0);
+                // also fun play: if dot products < 0 color different
+                
+
+                fColor = ambient + diffuse +specular;
+                fColor.a = 1.0;
+                
+                fTexCoord = vTexCoord;
+                gl_Position = projectionMatrix * modelViewMatrix * pos4D;
+            }
         </script>
 
         <script id="fragment-shader" type="x-shader/x-fragment">
-
-        #ifdef GL_ES
-        precision highp float;
-        #endif
-
-        uniform vec4 ambientProduct, diffuseProduct, specularProduct;
-        uniform float shininess;
-
-        varying vec3 fNormal;
-        varying vec3 fLight;
-        varying vec3 fEye;
         
-        uniform sampler2D Tex0;
-        uniform sampler2D Tex1;
-        varying  vec2 fTexCoord;
 
-        void
-        main()
-        {
- 
+            precision mediump float;
+            varying vec4 fColor;
+            varying vec2 fTexCoord;
 
-            // Normalize the normal, light, and eye vectors. Incase they are not already normalized.
-            vec3 N = normalize( fNormal );
-            vec3 L = normalize( fLight );
-            vec3 E = normalize( fEye );
+            uniform sampler2D Tex0;
+            uniform sampler2D Tex1;
+            uniform bool floor;
             
-            vec3 R = 2.0 * dot(L, N) * N - L; // Reflection vector
 
-            // Compute terms in the illumination equation
-            vec4 ambient = ambientProduct * texture2D(Tex1, fTexCoord) * texture2D(Tex0, fTexCoord);
+            void
+            main()
+            {
+    
+                gl_FragColor = fColor  * texture2D(Tex1, fTexCoord) * texture2D(Tex0, fTexCoord);
 
-            float Kd = max( dot(L, N), 0.0 );
-            vec4  diffuse = Kd*diffuseProduct * texture2D(Tex1, fTexCoord) * texture2D(Tex0, fTexCoord);
-
-            vec3 V = E; //Renamed just to make it more clear for the equation. 
-
-            float Ks = pow( max(dot(V, R), 0.0), shininess );
-            vec4  specular = Ks * specularProduct;
-            
-            
-            if( dot(L, N) < 0.0 ) {
-                specular = vec4(0.0, 0.0, 0.0, 1.0);
-            } 
-
-
-            vec4 Color = ambient + diffuse +specular;
-            Color.a = 1.0;
-
-            gl_FragColor = Color;
-        }
+            }
         </script>
     </head>
 
@@ -112,34 +106,51 @@
         <script type="text/javascript" src="../Common/webgl-utils.js"></script>
         <script type="text/javascript" src="../Common/initShaders.js"></script>
         <script type="text/javascript" src="../Common/MV.js"></script>
-        <script type="text/javascript" src="urbat_geometry_hw4.js"></script>
+        <script type="text/javascript" src="urbati_geometry_hw4.js"></script>
         <script type="text/javascript" src="urbati_hw4.js"></script>
         <script type="text/javascript" src="urbati_hw4_texture.js"></script>
-        <script type="text/javascript" src="urbait_animate_hw4.js"></script>
+        <script type="text/javascript" src="urbati_animate_hw4.js"></script>
 
         
 
         <h1> CSE 470 HW#4: Meet My Avatar</h1>
-        <div style="align-items: center;">
+        <div style="align-items: center; width: 50%;">
             <p><strong>Author: Chester Urbati</strong></p>
-            <p><strong>Date: April 19, 2026</strong></p>
-            <p><strong>Description:</strong></p>
+            <p><strong>Date: April 24, 2026</strong></p>
+            <p><strong>Description: </strong></p>
+            <p>This project shows my hierarchical model. I used phong vertex shading for lighting and used the y=x^3 function to create the texture seen on all the objects.</p>
+            <p>The figure is following a paramterized circle and then gets the tangent from the y vector and current position of the figure. That is then used to get the angle so the model following the path.</p>
             <p>
             </p>
             <p><strong>Resources:</strong></p>
             <p>https://stackoverflow.com/questions/37422885/how-to-rotate-an-object-along-a-circular-path</p>
             <p>https://developer.mozilla.org/en-US/docs/Web/API/KeyboardEvent</p>
             <p>https://stackoverflow.com/questions/34842502/processing-how-do-i-make-an-object-move-in-a-circular-path</p>
+            <p>Class notes, Demos, and Textbooks</p>
+
         </div>
         <div style="align-items: center;">
             <canvas id="gl-canvas" width="512" height="512" style="border:2px solid #000000;">
                 Oops ... your browser doesn't support the HTML5 canvas element
             </canvas>
         </div>
-        <div class="inputs" style="display: flex; flex-direction: row; align-items: center;">
+        <div class="inputs" style="display: flex; flex-direction: row; align-items: center; margin: 5px;">
+            <button id="animate" onclick="animateFig()">Animate</button>
+            <label for="materials" style="margin: 5px;">Material:</label>
+            <select id="materials" name="materials" onchange="changeMaterial(this.value)">
+                <option value="0">Gold</option>
+                <option value="1">Obsidian</option>
+                <option value="2">Ruby</option>
+            </select>
         </div>
-
-        <script type="text/javascript" src="mouseControl.js"></script>
+        <div style="width: 50%;">
+            <p>You can change matierals by using the drop down menu. You can start and stop the animation by using the button. Mouse controls are like normal expect I rebound the zoom. 
+                to zoom in and out you need to use the "+" and "-" on the keyboard. 
+            </p>
+            <p>Models Tree Break Down:</p>
+            <img src="tree.png">
+        </div>
+        <script type="text/javascript" src="urbati_mouseControl.js"></script>
     </body>
 
 </html>

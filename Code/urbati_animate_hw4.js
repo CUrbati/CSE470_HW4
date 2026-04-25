@@ -1,3 +1,5 @@
+//Chester Urbati
+
 function animation1()
 {
         t = t - 0.01;

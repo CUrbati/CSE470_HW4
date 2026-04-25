@@ -1,10 +1,13 @@
-var texture1, texture2;
+//Chester Urbati
+
+var texture1, texture2, texture3;
 
 var texSize = 256;
 var numChecks = 8;
 
 var image2 = new Uint8Array(4*texSize*texSize);
 var image1 = new Uint8Array(4*texSize*texSize);
+var image3 = new Uint8Array(4*texSize*texSize);
 
 var texCoord = [
     vec2(0, 0),
@@ -113,4 +116,53 @@ function configureTexture() {
                       gl.NEAREST_MIPMAP_LINEAR );
     gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
 
+    texture3 = gl.createTexture();
+    gl.bindTexture( gl.TEXTURE_2D, texture3 );
+    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, texSize, texSize, 0, gl.RGBA, gl.UNSIGNED_BYTE, image3);
+    gl.generateMipmap( gl.TEXTURE_2D );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, 
+                      gl.NEAREST_MIPMAP_LINEAR );
+    gl.texParameteri( gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    gl.activeTexture( gl.TEXTURE0 );
+    gl.bindTexture( gl.TEXTURE_2D, texture1 );
+    gl.uniform1i(gl.getUniformLocation( program, "Tex0"), 0);
+
+    gl.activeTexture( gl.TEXTURE1 );
+    gl.bindTexture( gl.TEXTURE_2D, texture2 );
+    gl.uniform1i(gl.getUniformLocation( program, "Tex1"), 1)
+
 }
+
+function loadTexture1(mat)
+{
+
+    gl.activeTexture( gl.TEXTURE0 );
+    gl.bindTexture( gl.TEXTURE_2D, texture1 );
+    gl.uniform1i(gl.getUniformLocation( program, "Tex0"), 0);
+
+    gl.activeTexture( gl.TEXTURE1 );
+    gl.bindTexture( gl.TEXTURE_2D, texture2 );
+    gl.uniform1i(gl.getUniformLocation( program, "Tex1"), 1)
+
+
+    //Set the light products to show the materials.
+    ambientProduct = mult(lightAmbient, matericalList[mat].ambient);
+    diffuseProduct = mult(lightDiffuse, matericalList[mat].diffuse);
+    specularProduct = mult(lightSpecular, matericalList[mat].specular);
+
+        //Send material information to gpu.
+    gl.uniform4fv(gl.getUniformLocation(program, "ambientProduct"),
+        flatten(ambientProduct));
+    gl.uniform4fv(gl.getUniformLocation(program, "diffuseProduct"),
+        flatten(diffuseProduct) );
+    gl.uniform4fv(gl.getUniformLocation(program, "specularProduct"), 
+        flatten(specularProduct) );	
+    gl.uniform4fv(gl.getUniformLocation(program, "lightPosition"), 
+        flatten(lightPosition) );
+
+    gl.uniform1f(gl.getUniformLocation(program, 
+        "shininess"),matericalList[mat].shininess);
+
+}
+
